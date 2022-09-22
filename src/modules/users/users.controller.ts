@@ -68,18 +68,29 @@ usersController.put(
   validateParamInt('id'),
   validate(CreateUserSchema),
   asyncHandler(async (req, res) => {
-    const { id } = req.params;
+    const id = Number(req.params.id);
     const { password, ...rest } = req.body;
     const user = await prisma.user.upsert({
-      where: { id: Number(id) },
+      where: { id },
       update: {
+        updatedBy: {
+          connect: {
+            id: req.user_.id
+          }
+        },
         ...rest,
         password: await argon2.hash(password)
       },
       create: {
         ...rest,
-        id: Number(id),
+        id,
         password: await argon2.hash(password)
+
+        // createdBy: {
+        //   connect: {
+        //     id: 5
+        //   }
+        // }
       }
     });
     Object.assign(user, { password: undefined });
@@ -104,7 +115,12 @@ usersController.patch(
       where: { id: Number(id) },
       data: {
         ...rest,
-        password: password ? await argon2.hash(password) : undefined
+        password: password ? await argon2.hash(password) : undefined,
+        updatedBy: {
+          connect: {
+            id: req.user_.id
+          }
+        }
       }
     });
     Object.assign(user, { password: undefined });
@@ -174,167 +190,190 @@ usersController.get(
   })
 );
 
-usersController.put(
-  '/:id/profile',
-  validateParamInt('id'),
-  validateSchema(CreateProfileSchema),
-  asyncHandler(async (req, res) => {
-    const { id } = req.params;
-    const existingUser = await prisma.user.findUnique({
-      where: { id: Number(id) }
-    });
-    if (!existingUser) {
-      throw createError(404, 'User not found');
-    }
-    const user = await prisma.user.update({
-      where: { id: Number(id) },
-      data: {
-        profile: {
-          upsert: {
-            create: req.body,
-            update: req.body
-          }
-        }
-      },
-      include: {
-        profile: true
-      }
-    });
-    Object.assign(user, { password: undefined });
-    res.send({ message: 'Upserted profile', user });
-  })
-);
-
-usersController.patch(
-  '/:id/profile',
-  validateParamInt('id'),
-  validateSchema(CreateProfileSchema),
-  asyncHandler(async (req, res) => {
-    const { id } = req.params;
-    const existingUser = await prisma.user.findUnique({
-      where: { id: Number(id) }
-    });
-    if (!existingUser) {
-      throw createError(404, 'User not found');
-    }
-    const existingProfile = await prisma.profile.findUnique({
-      where: { userId: Number(id) }
-    });
-    if (!existingProfile) {
-      throw createError(404, 'Profile has not been created');
-    }
-    const user = await prisma.user.update({
-      where: { id: Number(id) },
-      data: {
-        profile: {
-          update: req.body
-        }
-      },
-      include: {
-        profile: true
-      }
-    });
-    Object.assign(user, { password: undefined });
-    res.send({ message: 'Updated profile', user });
-  })
-);
-
-usersController.delete(
-  '/:id/profile',
-  asyncHandler(async (req, res, next) => {
-    const id = Number(req.params.id);
-    if (isNaN(id)) {
-      return next(createError(400, 'Invalid id'));
-    }
-    const existingUser = await prisma.user.findUnique({
-      where: { id }
-    });
-    if (!existingUser) {
-      return next(createError(404, 'User not found'));
-    }
-    const existingProfile = await prisma.profile.findUnique({
-      where: { userId: Number(id) }
-    });
-    if (!existingProfile) {
-      throw createError(404, 'Profile does not exist');
-    }
-    const profile = await prisma.profile.delete({
-      where: { userId: existingProfile.userId }
-    });
-    const user = await prisma.user.findUnique({
-      where: { id: profile.userId },
-      include: {
-        profile: true
-      }
-    });
-    Object.assign(user || {}, { password: undefined });
-    res.send({ message: 'Deleted profile', user });
-  })
-);
-
-usersController.put(
-  '/:id/cart/:productId',
-  validateParamInt(['id', 'productId']),
-  validate(UpdateCartSchema),
-  asyncHandler(async (req, res) => {
-    const userId = Number(req.params.id);
-    const productId = Number(req.params.productId);
-    const quantity = req.body.quantity;
-    const existingUser = await prisma.user.findUnique({
-      where: { id: userId }
-    });
-    if (!existingUser) {
-      throw createError(404, 'User not found');
-    }
-    const existingProduct = await prisma.product.findUnique({
-      where: { id: productId }
-    });
-    if (!existingProduct) {
-      throw createError(404, 'Product not found');
-    }
-    await prisma.cartItem.upsert({
-      where: {
-        userId
-      },
-      create: {
-        userId,
-        productId,
-        quantity
-      },
-      update: {
-        quantity
-      }
-    });
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        cart: true
-      }
-    });
-
-    res.send({ message: 'Added to cart', user });
-  })
-);
-
-usersController.delete(
+usersController.get(
   '/:id/cart',
   validateParamInt('id'),
   asyncHandler(async (req, res) => {
     const id = Number(req.params.id);
-    const existingUser = await prisma.user.findUnique({
-      where: { id: Number(id) }
+    const user = await prisma.user.findUnique({
+      where: { id },
+      include: {
+        cart: {
+          include: {
+            cartItems: true
+          }
+        }
+      }
     });
-    if (!existingUser) {
+    if (!user) {
       throw createError(404, 'User not found');
     }
-    await prisma.cartItem.deleteMany({
-      where: { user: { id: id } }
-    });
-    const user = await prisma.user.findUnique({
-      where: { id: id },
-      include: { cart: true }
-    });
-    Object.assign(user || {}, { password: undefined });
-    res.send({ message: 'Cleared cart', user });
+    Object.assign(user, { password: undefined });
+    res.send({ user });
   })
 );
+
+// usersController.put(
+//   '/:id/profile',
+//   validateParamInt('id'),
+//   validateSchema(CreateProfileSchema),
+//   asyncHandler(async (req, res) => {
+//     const { id } = req.params;
+//     const existingUser = await prisma.user.findUnique({
+//       where: { id: Number(id) }
+//     });
+//     if (!existingUser) {
+//       throw createError(404, 'User not found');
+//     }
+//     const user = await prisma.user.update({
+//       where: { id: Number(id) },
+//       data: {
+//         profile: {
+//           upsert: {
+//             create: req.body,
+//             update: req.body
+//           }
+//         }
+//       },
+//       include: {
+//         profile: true
+//       }
+//     });
+//     Object.assign(user, { password: undefined });
+//     res.send({ message: 'Upserted profile', user });
+//   })
+// );
+
+// usersController.patch(
+//   '/:id/profile',
+//   validateParamInt('id'),
+//   validateSchema(CreateProfileSchema),
+//   asyncHandler(async (req, res) => {
+//     const { id } = req.params;
+//     const existingUser = await prisma.user.findUnique({
+//       where: { id: Number(id) }
+//     });
+//     if (!existingUser) {
+//       throw createError(404, 'User not found');
+//     }
+//     const existingProfile = await prisma.profile.findUnique({
+//       where: { userId: Number(id) }
+//     });
+//     if (!existingProfile) {
+//       throw createError(404, 'Profile has not been created');
+//     }
+//     const user = await prisma.user.update({
+//       where: { id: Number(id) },
+//       data: {
+//         profile: {
+//           update: req.body
+//         }
+//       },
+//       include: {
+//         profile: true
+//       }
+//     });
+//     Object.assign(user, { password: undefined });
+//     res.send({ message: 'Updated profile', user });
+//   })
+// );
+
+// usersController.delete(
+//   '/:id/profile',
+//   asyncHandler(async (req, res, next) => {
+//     const id = Number(req.params.id);
+//     if (isNaN(id)) {
+//       return next(createError(400, 'Invalid id'));
+//     }
+//     const existingUser = await prisma.user.findUnique({
+//       where: { id }
+//     });
+//     if (!existingUser) {
+//       return next(createError(404, 'User not found'));
+//     }
+//     const existingProfile = await prisma.profile.findUnique({
+//       where: { userId: Number(id) }
+//     });
+//     if (!existingProfile) {
+//       throw createError(404, 'Profile does not exist');
+//     }
+//     const profile = await prisma.profile.delete({
+//       where: { userId: existingProfile.userId }
+//     });
+//     const user = await prisma.user.findUnique({
+//       where: { id: profile.userId },
+//       include: {
+//         profile: true
+//       }
+//     });
+//     Object.assign(user || {}, { password: undefined });
+//     res.send({ message: 'Deleted profile', user });
+//   })
+// );
+
+// usersController.put(
+//   '/:id/cart/:productId',
+//   validateParamInt(['id', 'productId']),
+//   validate(UpdateCartSchema),
+//   asyncHandler(async (req, res) => {
+//     const userId = Number(req.params.id);
+//     const productId = Number(req.params.productId);
+//     const quantity = req.body.quantity;
+//     const existingUser = await prisma.user.findUnique({
+//       where: { id: userId }
+//     });
+//     if (!existingUser) {
+//       throw createError(404, 'User not found');
+//     }
+//     const existingProduct = await prisma.product.findUnique({
+//       where: { id: productId }
+//     });
+//     if (!existingProduct) {
+//       throw createError(404, 'Product not found');
+//     }
+//     await prisma.cartItem.upsert({
+//       where: {
+//         userId
+//       },
+//       create: {
+//         userId,
+//         productId,
+//         quantity
+//       },
+//       update: {
+//         quantity
+//       }
+//     });
+//     const user = await prisma.user.findUnique({
+//       where: { id: userId },
+//       include: {
+//         cart: true
+//       }
+//     });
+
+//     res.send({ message: 'Added to cart', user });
+//   })
+// );
+
+// usersController.delete(
+//   '/:id/cart',
+//   validateParamInt('id'),
+//   asyncHandler(async (req, res) => {
+//     const id = Number(req.params.id);
+//     const existingUser = await prisma.user.findUnique({
+//       where: { id: Number(id) }
+//     });
+//     if (!existingUser) {
+//       throw createError(404, 'User not found');
+//     }
+//     await prisma.cartItem.deleteMany({
+//       where: { user: { id: id } }
+//     });
+//     const user = await prisma.user.findUnique({
+//       where: { id: id },
+//       include: { cart: true }
+//     });
+//     Object.assign(user || {}, { password: undefined });
+//     res.send({ message: 'Cleared cart', user });
+//   })
+// );

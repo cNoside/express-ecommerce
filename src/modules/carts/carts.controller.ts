@@ -4,7 +4,8 @@ import { validateParamInt, validateSchema } from 'common/middlewares';
 import { parseQueries } from 'common/utils';
 import { Router } from 'express';
 import asyncHandler from 'express-async-handler';
-import { CreateCartSchema } from './cart.schema';
+import { CreateCartSchema, UpsertCartSchema } from './cart.schema';
+import { calculateCartQuantity } from './cart.util';
 
 export const cartsController = Router();
 
@@ -69,6 +70,25 @@ cartsController.get(
   })
 );
 
+cartsController.get(
+  '/user/:userId/items',
+  validateParamInt('userId'),
+  asyncHandler(async (req, res) => {
+    const userId = Number(req.params.userId);
+    const cart = await prisma.cart.findUnique({
+      where: { userId },
+      include: {
+        cartItems: true
+      }
+    });
+    if (!cart) {
+      throw createError(404, 'Cart not found');
+    }
+    const cartItemsQuantity = await calculateCartQuantity(cart.id);
+    res.send({ cart, cartItemsQuantity });
+  })
+);
+
 cartsController.post(
   '/',
   validateSchema(CreateCartSchema),
@@ -85,6 +105,32 @@ cartsController.post(
       }
     });
     res.send({ message: 'Created cart', cart });
+  })
+);
+
+cartsController.put(
+  '/user/:userId',
+  validateParamInt(['userId']),
+  validateSchema(UpsertCartSchema),
+  asyncHandler(async (req, res) => {
+    const userId = Number(req.params.userId);
+    const cart = await prisma.cart.upsert({
+      where: {
+        userId
+      },
+      update: {
+        ...req.body
+      },
+      create: {
+        ...req.body,
+        user: {
+          connect: {
+            id: userId
+          }
+        }
+      }
+    });
+    res.send({ message: `Upserted cart of userId ${userId}`, cart });
   })
 );
 

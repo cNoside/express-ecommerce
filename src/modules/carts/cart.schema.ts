@@ -41,3 +41,20 @@ export const CreateCartSchema = z.object<
     .multipleOf(1, 'No decimals')
     .optional()
 });
+
+export const UpsertCartSchema = z.object<
+  Partial<Record<keyof Cart, ZodTypeAny>>
+>({
+  totalPrice: z
+    .number()
+    .positive()
+    .max(1_000_000_000)
+    .transform((price) => Number(price.toFixed(2)))
+    .optional(),
+  totalQuantity: z
+    .number()
+    .min(0)
+    .max(100_000_000)
+    .multipleOf(1, 'No decimals')
+    .optional()
+});
