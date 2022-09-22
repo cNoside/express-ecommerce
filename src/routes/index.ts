@@ -5,6 +5,7 @@ import { cartsController } from '@modules/carts';
 import { usersController } from '@modules/users';
 import { productsController } from '@modules/products';
 import { profilesController } from '@modules/profiles';
+import { cartItemsController } from '@modules/cartItems';
 
 const BASE_URL = '/api';
 
@@ -13,6 +14,7 @@ const v1 = Router()
   .use('/users', usersController)
   .use('/carts', cartsController)
   .use('/products', productsController)
-  .use('/profiles', profilesController);
+  .use('/profiles', profilesController)
+  .use('/cartItems', cartItemsController);
 
 export const routes = Router().use(`${BASE_URL}/v1`, v1);
