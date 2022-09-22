@@ -1,0 +1,109 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       Int    @id @default(autoincrement())
+  email    String @unique
+  username String
+  password String
+  role     Role   @default(user)
+
+  profile Profile?
+  cart    Cart?
+
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @default(now()) @updatedAt
+  updatedByUserId  Int?
+  updatedProfiles  Profile[]  @relation(name: "UpdatedProfiles")
+  updatedProducts  Product[]  @relation(name: "UpdatedProducts")
+  updatedCarts     Cart[]     @relation(name: "UpdatedCarts")
+  updatedCartItems CartItem[] @relation(name: "UpdatedCartItems")
+}
+
+enum Role {
+  admin
+  user
+  staff
+}
+
+model Profile {
+  id        Int     @id @default(autoincrement())
+  firstName String?
+  lastName  String?
+  imageUrl  String?
+  bio       String? @db.VarChar(500)
+
+  user   User @relation(fields: [userId], references: [id])
+  userId Int  @unique
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now()) @updatedAt
+  updatedBy       User?    @relation(name: "UpdatedProfiles", fields: [updatedByUserId], references: [id])
+  updatedByUserId Int?
+}
+
+model Product {
+  id          Int    @id @default(autoincrement())
+  name        String
+  description String @db.VarChar(500)
+  imageUrl    String
+  price       Float
+  quantity    Int
+
+  cartItems CartItem[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now()) @updatedAt
+  updatedBy       User?    @relation(name: "UpdatedProducts", fields: [updatedByUserId], references: [id])
+  updatedByUserId Int?
+}
+
+model Cart {
+  id            Int   @id @default(autoincrement())
+  totalPrice    Float @default(0)
+  totalQuantity Int   @default(0)
+
+  user      User       @relation(fields: [userId], references: [id])
+  userId    Int        @unique
+  cartItems CartItem[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now()) @updatedAt
+  updatedBy       User?    @relation(name: "UpdatedCarts", fields: [updatedByUserId], references: [id])
+  updatedByUserId Int?
+}
+
+model CartItem {
+  id       Int @id @default(autoincrement())
+  quantity Int
+
+  cart      Cart    @relation(fields: [cartId], references: [id])
+  cartId    Int     @unique
+  product   Product @relation(fields: [productId], references: [id])
+  productId Int     @unique
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now()) @updatedAt
+  updatedBy       User?    @relation(name: "UpdatedCartItems", fields: [updatedByUserId], references: [id])
+  updatedByUserId Int?
+}
+
+// model Order {
+//   id            Int       @id @default(autoincrement())
+//   user          User      @relation(fields: [userId], references: [id])
+//   userId        Int       @unique
+//   products      Product[]
+//   totalPrice    Int
+//   totalQuantity Int
+//   createdAt     DateTime  @default(now())
+//   updatedAt     DateTime  @default(now()) @updatedAt
+// }

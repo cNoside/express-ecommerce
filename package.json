@@ -1,0 +1,60 @@
+{
+  "name": "express-ecommerce",
+  "version": "1.0.0",
+  "description": "An express backend E-commerce application",
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
+  },
+  "scripts": {
+    "start": "node dist",
+    "dev": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/index.ts",
+    "build": "tsc",
+    "lint": "eslint src/**/*.ts"
+  },
+  "keywords": [
+    "express",
+    "prisma",
+    "ecommerce"
+  ],
+  "author": "cNoside",
+  "license": "MIT",
+  "dependencies": {
+    "@prisma/client": "4.2.1",
+    "argon2": "0.28.7",
+    "class-validator": "0.13.2",
+    "express": "4.18.1",
+    "express-async-handler": "1.2.0",
+    "http-errors": "2.0.0",
+    "jsonwebtoken": "8.5.1",
+    "lodash": "4.17.21",
+    "morgan": "1.10.0",
+    "passport": "0.6.0",
+    "passport-jwt": "4.0.0",
+    "passport-local": "1.0.0",
+    "swagger-ui-express": "4.5.0",
+    "winston": "3.8.1",
+    "zod": "3.18.0"
+  },
+  "devDependencies": {
+    "@faker-js/faker": "7.4.0",
+    "@types/express": "4.17.13",
+    "@types/http-errors": "1.8.2",
+    "@types/jsonwebtoken": "8.5.8",
+    "@types/lodash": "4.14.182",
+    "@types/morgan": "1.9.3",
+    "@types/node": "18.7.3",
+    "@types/passport": "1.0.10",
+    "@types/passport-jwt": "3.0.6",
+    "@types/passport-local": "1.0.34",
+    "@types/swagger-ui-express": "4.1.3",
+    "@typescript-eslint/eslint-plugin": "5.33.1",
+    "@typescript-eslint/parser": "5.33.1",
+    "dotenv": "16.0.1",
+    "eslint": "8.22.0",
+    "prisma": "4.2.1",
+    "ts-node": "10.9.1",
+    "ts-node-dev": "2.0.0",
+    "tsconfig-paths": "4.1.0",
+    "typescript": "4.7.4"
+  }
+}
