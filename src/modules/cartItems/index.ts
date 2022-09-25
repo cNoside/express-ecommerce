@@ -1,1 +1,1 @@
-export { cartItemsController } from './cartItem.controller';
+export { cartItemsController } from './cartItems.controller';

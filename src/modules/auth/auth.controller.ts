@@ -1,20 +1,18 @@
-import asyncHandler from 'express-async-handler';
+import argon2 from 'argon2';
+import passport from 'passport';
 import { Router } from 'express';
 import createError from 'http-errors';
-import argon2 from 'argon2';
+import asyncHandler from 'express-async-handler';
 
-import { prisma } from 'common/config/prisma';
-import { validate } from 'middlewares/validate';
+import { prisma } from '@prisma';
+import { env } from 'common/config/env';
 import { AuthSchema, LoginSchema } from './auth.schema';
 import { jwtService } from 'common/services/jwt.service';
-import { env } from 'common/config/env';
-import passport from 'passport';
-import { roleGuard } from 'common/middlewares';
-import { protectedRoute } from 'common/middlewares/protected-route';
+import { validateSchema, protectedRoute } from 'common/middlewares';
 
 export const authController = Router();
 
-authController.post('/signup', validate(AuthSchema), async (req, res) => {
+authController.post('/signup', validateSchema(AuthSchema), async (req, res) => {
   const { password, ...rest } = req.body;
   const user = await prisma.user.create({
     data: {
@@ -26,23 +24,27 @@ authController.post('/signup', validate(AuthSchema), async (req, res) => {
   res.send({ user });
 });
 
-authController.post('/login', validate(LoginSchema), async (req, res, next) => {
-  passport.authenticate('local', (err, user, foo, bar) => {
-    if (err) {
-      return next(err);
-    } else if (!user) {
-      return next(createError(401, 'Invalid email or password'));
-    } else {
-      res.send({
-        token: jwtService.sign(
-          { sub: user.id },
-          { expiresIn: env.jwt.expiresIn }
-        ),
-        expiresIn: env.jwt.expiresIn
-      });
-    }
-  })(req, res, next);
-});
+authController.post(
+  '/login',
+  validateSchema(LoginSchema),
+  async (req, res, next) => {
+    passport.authenticate('local', (err, user) => {
+      if (err) {
+        return next(err);
+      } else if (!user) {
+        return next(createError(401, 'Invalid email or password'));
+      } else {
+        res.send({
+          token: jwtService.sign(
+            { sub: user.id },
+            { expiresIn: env.jwt.expiresIn }
+          ),
+          expiresIn: env.jwt.expiresIn
+        });
+      }
+    })(req, res, next);
+  }
+);
 
 authController.get('/whoami', protectedRoute, async (req, res) => {
   const user = await prisma.user.findUnique({
@@ -51,14 +53,3 @@ authController.get('/whoami', protectedRoute, async (req, res) => {
   Object.assign(user || {}, { password: undefined });
   res.send({ user });
 });
-
-authController.delete(
-  '/account',
-  protectedRoute,
-  asyncHandler(async (req, res) => {
-    const user = await prisma.user.delete({
-      where: { id: req.user_.id }
-    });
-    res.send({ user });
-  })
-);

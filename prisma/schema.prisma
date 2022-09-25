@@ -11,14 +11,15 @@ datasource db {
 }
 
 model User {
-  id       Int    @id @default(autoincrement())
+  id Int @id @default(autoincrement())
+
   email    String @unique
   username String
   password String
   role     Role   @default(user)
 
   profile Profile?
-  cart    Cart?
+  cart    CartItem[]
 }
 
 enum Role {
@@ -28,18 +29,20 @@ enum Role {
 }
 
 model Profile {
-  id        Int     @id @default(autoincrement())
+  id Int @id @default(autoincrement())
+
   firstName String?
   lastName  String?
   imageUrl  String?
   bio       String? @db.VarChar(500)
+  userId    Int     @unique
 
-  user   User @relation(fields: [userId], references: [id])
-  userId Int  @unique
+  user User @relation(fields: [userId], references: [id])
 }
 
 model Product {
-  id          Int    @id @default(autoincrement())
+  id Int @id @default(autoincrement())
+
   name        String
   description String @db.VarChar(500)
   imageUrl    String
@@ -49,22 +52,15 @@ model Product {
   cartItems CartItem[]
 }
 
-model Cart {
-  id     Int  @id @default(autoincrement())
-  user   User @relation(fields: [userId], references: [id])
-  userId Int  @unique
-
-  cartItems CartItem[]
-}
-
 model CartItem {
-  id       Int @id @default(autoincrement())
-  quantity Int
+  id Int @id @default(autoincrement())
 
-  cart      Cart    @relation(fields: [cartId], references: [id])
-  cartId    Int
-  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
   productId Int
+  userId    Int?
+
+  product Product @relation(fields: [productId], references: [id])
+  User    User?   @relation(fields: [userId], references: [id])
 }
 
 // model Order {

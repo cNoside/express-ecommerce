@@ -2,13 +2,13 @@ import { Router } from 'express';
 import createError from 'http-errors';
 import asyncHandler from 'express-async-handler';
 
-import { prisma } from '@prisma';
-import { parseQueries } from 'common/utils';
 import {
   roleGuard,
   validateParamInt,
   validateSchema
 } from 'common/middlewares';
+import { prisma } from '@prisma';
+import { parseQueries } from 'common/utils';
 import { CreateProfileSchema } from './profile.schema';
 
 export const profilesController = Router();
@@ -25,20 +25,14 @@ profilesController.get(
 );
 
 profilesController.get(
-  '/count',
+  '/users/:userId',
+  validateParamInt('userId'),
   asyncHandler(async (req, res) => {
-    const count = await prisma.profile.count();
-    res.send({ count });
-  })
-);
-
-profilesController.get(
-  '/:id',
-  validateParamInt('id'),
-  asyncHandler(async (req, res) => {
-    const id = Number(req.params.id);
-    const profile = await prisma.profile.findUnique({
-      where: { id }
+    const userId = Number(req.params.userId);
+    const profile = await prisma.profile.findFirst({
+      where: {
+        userId
+      }
     });
     if (!profile) {
       throw createError(404, 'Profile not found');
@@ -48,19 +42,19 @@ profilesController.get(
 );
 
 profilesController.put(
-  '/:id',
-  validateParamInt('id'),
+  '/users/:userId',
+  validateParamInt('userId'),
   validateSchema(CreateProfileSchema),
   asyncHandler(async (req, res) => {
-    const { id } = req.params;
+    const userId = Number(req.params.userId);
     const existingUser = await prisma.user.findUnique({
-      where: { id: Number(id) }
+      where: { id: userId }
     });
     if (!existingUser) {
       throw createError(404, 'User not found');
     }
     const user = await prisma.user.update({
-      where: { id: Number(id) },
+      where: { id: userId },
       data: {
         profile: {
           upsert: {

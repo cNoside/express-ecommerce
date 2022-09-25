@@ -1,4 +1,3 @@
-import createError from 'http-errors';
 import { Request, Response, NextFunction } from 'express';
 
 import { Role } from '@prisma/client';

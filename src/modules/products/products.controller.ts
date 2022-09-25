@@ -4,8 +4,8 @@ import asyncHandler from 'express-async-handler';
 
 import { prisma } from '@prisma';
 import { parseQueries } from 'common/utils';
-import { CreateProductSchema, UpdateProductSchema } from './product.schema';
 import { validateParamInt, validateSchema } from 'common/middlewares';
+import { CreateProductSchema, UpdateProductSchema } from './product.schema';
 
 export const productsController = Router();
 
@@ -25,9 +25,9 @@ productsController.get(
   '/:id',
   validateParamInt('id'),
   asyncHandler(async (req, res) => {
-    const { id } = req.params;
+    const id = Number(req.params.id);
     const product = await prisma.product.findUnique({
-      where: { id: Number(id) }
+      where: { id }
     });
     if (!product) {
       throw createError(404, 'Product not found');
@@ -44,24 +44,6 @@ productsController.post(
       data: req.body
     });
     res.send({ message: 'Created product', product });
-  })
-);
-
-productsController.put(
-  '/:id',
-  validateParamInt('id'),
-  validateSchema(CreateProductSchema),
-  asyncHandler(async (req, res) => {
-    const id = Number(req.params.id);
-    const product = await prisma.product.upsert({
-      where: { id },
-      create: {
-        ...req.body,
-        id
-      },
-      update: req.body
-    });
-    res.send({ message: 'Upserted product', product });
   })
 );
 

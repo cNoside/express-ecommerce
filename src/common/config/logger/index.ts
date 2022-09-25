@@ -12,7 +12,7 @@ const loggingLevels = {
   silly: 7
 };
 
-const { timestamp, prettyPrint, metadata } = winston.format;
+const { timestamp, prettyPrint } = winston.format;
 
 export const logger = winston.createLogger({
   level: 'info',

@@ -9,12 +9,13 @@ export const validateParamInt =
       if (isNaN(Number(param))) {
         return next(createError(400, `${paramKey} must be a number`));
       }
-    } else {
-      Object.entries(req.params).forEach(([key, value]) => {
-        if (key in paramKey && isNaN(Number(value))) {
-          return next(createError(400, `${paramKey} must be a number`));
+    } else if (paramKey instanceof Array) {
+      for (const key of paramKey) {
+        const { [key]: param } = req.params;
+        if (isNaN(Number(param))) {
+          return next(createError(400, `${key} must be a number`));
         }
-      });
+      }
     }
     next();
   };

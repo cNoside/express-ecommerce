@@ -1,7 +1,7 @@
 import { z, ZodTypeAny } from 'zod';
 import { User, Role } from '@prisma/client';
 
-import { prisma } from 'common/config/prisma';
+import { prisma } from '@prisma';
 
 export const CreateUserSchema = z.object<
   Partial<Record<keyof User, ZodTypeAny>>
