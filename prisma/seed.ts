@@ -8,7 +8,7 @@ const USERS_AMOUNT = 10;
 const PRODUCTS_AMOUNT = 10;
 
 async function main() {
-  const rootUser = prisma.user.create({
+  const rootUser = await prisma.user.create({
     data: {
       username: 'root',
       email: 'root@internal.com',
@@ -16,7 +16,7 @@ async function main() {
       role: 'admin'
     }
   });
-  const testUser = prisma.user.create({
+  const testUser = await prisma.user.create({
     data: {
       username: 'user',
       email: 'user@internal.com',
@@ -52,7 +52,7 @@ async function main() {
       description: faker.lorem.sentences(),
       imageUrl: faker.image.cats(),
       price: Number(faker.commerce.price()),
-      quantity: faker.datatype.number({ min: 1, max: 100 })
+      quantity: faker.datatype.number({ min: 50, max: 100 })
     }))
   });
 

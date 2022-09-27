@@ -20,6 +20,7 @@ model User {
 
   profile Profile?
   cart    CartItem[]
+  orders  Order[]
 }
 
 enum Role {
@@ -31,11 +32,11 @@ enum Role {
 model Profile {
   id Int @id @default(autoincrement())
 
+  userId    Int     @unique
   firstName String?
   lastName  String?
   imageUrl  String?
   bio       String? @db.VarChar(500)
-  userId    Int     @unique
 
   user User @relation(fields: [userId], references: [id])
 }
@@ -50,26 +51,46 @@ model Product {
   quantity    Int
 
   cartItems CartItem[]
+  order    OrderItem[]
 }
 
 model CartItem {
   id Int @id @default(autoincrement())
 
-  quantity  Int
   productId Int
-  userId    Int?
+  userId    Int
+  quantity  Int
 
   product Product @relation(fields: [productId], references: [id])
-  User    User?   @relation(fields: [userId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
 }
 
-// model Order {
-//   id            Int       @id @default(autoincrement())
-//   user          User      @relation(fields: [userId], references: [id])
-//   userId        Int       @unique
-//   products      Product[]
-//   totalPrice    Int
-//   totalQuantity Int
-//   createdAt     DateTime  @default(now())
-//   updatedAt     DateTime  @default(now()) @updatedAt
-// }
+model Order {
+  id Int @id @default(autoincrement())
+
+  userId      Int
+  orderStatus OrderStatus @default(processing)
+  dateCreated DateTime    @default(now())
+
+  user       User        @relation(fields: [userId], references: [id])
+  orderItems OrderItem[]
+}
+
+enum OrderStatus {
+  pending // payment not yet received
+  processing // payment received, order being processed
+  shipped // order packed and shipped
+  delivered
+  cancelled
+}
+
+model OrderItem {
+  id Int @id @default(autoincrement())
+
+  productId Int
+  orderId   Int
+  quantity  Int @default(1)
+
+  product Product @relation(fields: [productId], references: [id])
+  order   Order   @relation(fields: [orderId], references: [id])
+}

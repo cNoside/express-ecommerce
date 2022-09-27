@@ -1,9 +1,11 @@
 import { Router } from 'express';
 import { prisma } from '@prisma';
+import createError from 'http-errors';
 import asyncHandler from 'express-async-handler';
 
 import { CreateCartItemSchema } from './cartItem.schema';
 import { validateParamInt, validateSchema } from 'common/middlewares';
+import { Product } from '@prisma/client';
 
 export const cartItemsController = Router();
 
@@ -33,6 +35,14 @@ cartItemsController.put(
     const userId = Number(req.params.userId);
     const { productId, quantity } = req.body;
 
+    const { quantity: stock } = (await prisma.product.findUnique({
+      where: { id: productId }
+    })) as Product;
+
+    if (stock - quantity < 0) {
+      throw createError(400, 'Insufficient stock');
+    }
+
     const existingCartItem = await prisma.cartItem.findFirst({
       where: {
         userId,
@@ -61,8 +71,11 @@ cartItemsController.put(
         userId
       },
       select: {
-        quantity: true,
-        productId: true
+        productId: true,
+        quantity: true
+      },
+      orderBy: {
+        productId: 'asc'
       }
     });
     res.send({ cart: cartItems });
