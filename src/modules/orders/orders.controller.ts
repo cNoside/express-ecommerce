@@ -3,7 +3,9 @@ import createError from 'http-errors';
 import asyncHandler from 'express-async-handler';
 
 import { prisma } from '@prisma';
+import { UpdateOrder } from './order.schema';
 import { validateParamInt } from 'common/middlewares';
+import { validateSchema } from '../../common/middlewares/validate-schema';
 
 export const ordersController = Router();
 
@@ -109,15 +111,19 @@ ordersController.post(
       });
       if (Number(product?.quantity) - quantity < 0) {
         throw createError(400, 'Insufficient stock');
-      }
-      await prisma.product.update({
-        where: { id: productId },
-        data: {
-          quantity: {
-            decrement: quantity
+      } else {
+        // Payment logic
+        // ...
+
+        await prisma.product.update({
+          where: { id: productId },
+          data: {
+            quantity: {
+              decrement: quantity
+            }
           }
-        }
-      });
+        });
+      }
     }
 
     await prisma.cartItem.deleteMany({
@@ -129,7 +135,7 @@ ordersController.post(
     const order = await prisma.order.create({
       data: {
         userId: user.id,
-        orderStatus: 'processing', // TODO: Should be pending once payment is implemented
+        orderStatus: 'processing',
         orderItems: {
           createMany: {
             data: user.cart.map(({ productId, quantity }) => ({
@@ -138,17 +144,6 @@ ordersController.post(
             }))
           }
         }
-      },
-      select: {
-        id: true,
-        userId: true,
-        orderItems: {
-          select: {
-            productId: true,
-            quantity: true
-          }
-        },
-        dateCreated: true
       }
     });
 
@@ -157,5 +152,59 @@ ordersController.post(
     // ...
 
     res.send({ order });
+  })
+);
+
+ordersController.patch(
+  '/:orderId',
+  validateParamInt('orderId'),
+  validateSchema(UpdateOrder),
+  asyncHandler(async (req, res) => {
+    const orderId = Number(req.params.orderId);
+    const order = await prisma.order.findUnique({
+      where: {
+        id: orderId
+      }
+    });
+    if (!order) {
+      throw createError(404, 'Order not found');
+    }
+    const updatedOrder = await prisma.order.update({
+      where: {
+        id: orderId
+      },
+      data: req.body
+    });
+    res.send({ order: updatedOrder });
+  })
+);
+
+ordersController.delete(
+  '/:id',
+  validateParamInt('id'),
+  asyncHandler(async (req, res) => {
+    const orderId = Number(req.params.id);
+    const order = await prisma.order.findUnique({
+      where: {
+        id: orderId
+      }
+    });
+    if (!order) {
+      throw createError(404, 'Order not found');
+    }
+
+    await prisma.orderItem.deleteMany({
+      where: {
+        orderId
+      }
+    });
+
+    await prisma.order.delete({
+      where: {
+        id: orderId
+      }
+    });
+
+    res.status(204).send();
   })
 );
