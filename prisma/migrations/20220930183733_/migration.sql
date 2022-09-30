@@ -13,11 +13,11 @@ CREATE TABLE `User` (
 -- CreateTable
 CREATE TABLE `Profile` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `userId` INTEGER NOT NULL,
     `firstName` VARCHAR(191) NULL,
     `lastName` VARCHAR(191) NULL,
     `imageUrl` VARCHAR(191) NULL,
     `bio` VARCHAR(500) NULL,
-    `userId` INTEGER NOT NULL,
 
     UNIQUE INDEX `Profile_userId_key`(`userId`),
     PRIMARY KEY (`id`)
@@ -38,9 +38,9 @@ CREATE TABLE `Product` (
 -- CreateTable
 CREATE TABLE `CartItem` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
-    `quantity` INTEGER NOT NULL,
     `productId` INTEGER NOT NULL,
     `userId` INTEGER NOT NULL,
+    `quantity` INTEGER NOT NULL,
 
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -49,6 +49,7 @@ CREATE TABLE `CartItem` (
 CREATE TABLE `Order` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `userId` INTEGER NOT NULL,
+    `orderStatus` ENUM('processing', 'shipped', 'delivered', 'cancelled') NOT NULL DEFAULT 'processing',
     `dateCreated` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
 
     PRIMARY KEY (`id`)
@@ -59,6 +60,7 @@ CREATE TABLE `OrderItem` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `productId` INTEGER NOT NULL,
     `orderId` INTEGER NOT NULL,
+    `quantity` INTEGER NOT NULL DEFAULT 1,
 
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

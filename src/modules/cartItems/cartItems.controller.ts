@@ -3,7 +3,7 @@ import { prisma } from '@prisma';
 import createError from 'http-errors';
 import asyncHandler from 'express-async-handler';
 
-import { CreateCartItemSchema } from './cartItem.schema';
+import { UpdateCartSchema } from './cartItem.schema';
 import { validateParamInt, validateSchema } from 'common/middlewares';
 import { Product } from '@prisma/client';
 
@@ -28,44 +28,49 @@ cartItemsController.get(
 );
 
 cartItemsController.put(
-  '/user/:userId',
+  '/users/:userId',
   validateParamInt('userId'),
-  validateSchema(CreateCartItemSchema),
+  validateSchema(UpdateCartSchema),
   asyncHandler(async (req, res) => {
     const userId = Number(req.params.userId);
-    const { productId, quantity } = req.body;
+    const products = req.body;
+    console.log(req.body);
 
-    const { quantity: stock } = (await prisma.product.findUnique({
-      where: { id: productId }
-    })) as Product;
+    for (const product of products) {
+      const { quantity: availableStock } = (await prisma.product.findUnique({
+        where: { id: product.productId }
+      })) as Product;
 
-    if (stock - quantity < 0) {
-      throw createError(400, 'Insufficient stock');
-    }
-
-    const existingCartItem = await prisma.cartItem.findFirst({
-      where: {
-        userId,
-        productId
+      if (availableStock - product.quantity < 0) {
+        throw createError(400, 'Insufficient stock');
       }
-    });
-    if (existingCartItem) {
-      await prisma.cartItem.update({
+
+      const existingCartItem = await prisma.cartItem.findFirst({
         where: {
-          id: existingCartItem.id
-        },
-        data: {
-          quantity
-        }
-      });
-    } else {
-      await prisma.cartItem.create({
-        data: {
           userId,
-          ...req.body
+          productId: product.productId
         }
       });
+      if (existingCartItem) {
+        await prisma.cartItem.update({
+          where: {
+            id: existingCartItem.id
+          },
+          data: {
+            quantity: product.quantity
+          }
+        });
+      } else {
+        await prisma.cartItem.create({
+          data: {
+            userId,
+            productId: product.productId,
+            quantity: product.quantity
+          }
+        });
+      }
     }
+
     const cartItems = await prisma.cartItem.findMany({
       where: {
         userId
@@ -98,7 +103,7 @@ cartItemsController.delete(
 
 cartItemsController.delete(
   '/user/:userId/product/:productId',
-  validateParamInt(['userId', 'productId']),
+  validateParamInt('userId', 'productId'),
   asyncHandler(async (req, res) => {
     const userId = Number(req.params.userId);
     const productId = Number(req.params.productId);

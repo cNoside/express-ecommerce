@@ -2,7 +2,7 @@ import createError from 'http-errors';
 import { NextFunction, Request, Response } from 'express';
 
 export const validateParamInt =
-  (paramKey: string | string[]) =>
+  (...paramKey: string[]) =>
   (req: Request, res: Response, next: NextFunction) => {
     if (typeof paramKey === 'string') {
       const { [paramKey]: param } = req.params;

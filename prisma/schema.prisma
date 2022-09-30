@@ -51,7 +51,7 @@ model Product {
   quantity    Int
 
   cartItems CartItem[]
-  order    OrderItem[]
+  order     OrderItem[]
 }
 
 model CartItem {
@@ -77,8 +77,7 @@ model Order {
 }
 
 enum OrderStatus {
-  pending // payment not yet received
-  processing // payment received, order being processed
+  processing // payment received, order being processed/packed
   shipped // order packed and shipped
   delivered
   cancelled
